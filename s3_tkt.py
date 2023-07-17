@@ -15,11 +15,18 @@ class S3FileExplorerFrame(tk.Frame):
         self.selected_object = Publisher()
         self.selected_bucket =  Publisher()
         self.configure(bg="white")
+        self.bucket_icon = tk.PhotoImage(file="icons/bucket2.png").subsample(20, 20)
+        self.folder_icon = tk.PhotoImage(file="icons/folder2.png").subsample(20, 20)
+        self.file_icon = tk.PhotoImage(file="icons/file2.png").subsample(20, 20)
         self.create_widgets()
 
     def create_widgets(self):
-        self.tree = ttk.Treeview(self)
-        self.tree.heading("#0", text="AWS S3")
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("NoBorder.Treeview", background="white", borderwidth=0, highlightthickness=0)
+
+        self.tree = ttk.Treeview(self, style="NoBorder.Treeview")
+        self.tree.heading("#0", text="Buckets")
         self.tree.column("#0", stretch=True)
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_select)
         self.tree.bind("<Double-1>", self.on_double_click)
@@ -33,7 +40,8 @@ class S3FileExplorerFrame(tk.Frame):
         response = s3.list_buckets()
         buckets = response['Buckets']
         for bucket in buckets:
-            self.tree.insert('', 'end', iid=bucket['Name'], text=bucket['Name'], tags=['bucket', 'encrypted'])
+            bucket_name = bucket['Name']
+            self.tree.insert('', 'end', iid=bucket_name, image=self.bucket_icon, text=bucket_name, tags=['bucket', 'encrypted'])
 
     def populate_tree(self, bucket_name):
         self.selected_bucket.set_value(bucket_name)
@@ -43,7 +51,10 @@ class S3FileExplorerFrame(tk.Frame):
 
         if 'Contents' in s3_objects:
             for obj in s3_objects['Contents']:
-                self.tree.insert('', 'end', text=obj['Key'], tags=['object', {'encrypted': None}])
+                if obj['Key'].endswith('/'):
+                    self.tree.insert('', 'end', text=obj['Key'], image=self.folder_icon, tags=['object', {'encrypted': None}])
+                else:
+                    self.tree.insert('', 'end', text=obj['Key'], image=self.file_icon, tags=['object', {'encrypted': None}])
 
     def reset(self):
         self.selected_object.set_value(None)
